@@ -8,9 +8,6 @@ import com.example.demo1234.enums.Role;
 import com.example.demo1234.model.User;
 import com.example.demo1234.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,12 +16,10 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    // Kullanıcı kaydı
     @PostMapping("/register")
     public LoginResponse register(@RequestBody RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -35,7 +30,7 @@ public class AuthController {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.ROLE_CUSTOMER) // Normal kullanıcı olarak kayıt ediyoruz
+                .role(Role.ROLE_CUSTOMER)
                 .build();
 
         userRepository.save(user);
@@ -45,22 +40,12 @@ public class AuthController {
         return new LoginResponse(token);
     }
 
-    //  Kullanıcı girişi
     @PostMapping("/login")
     public LoginResponse login(@RequestBody LoginRequest request) {
-        // 1. Kimlik doğrulama
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
 
-        // 2. Kullanıcıyı veritabanından çekiyoruz
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
-        // 3. Token oluşturuyoruz (email + rol ile)
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
 
         return new LoginResponse(token);
